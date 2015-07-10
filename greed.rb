@@ -1,4 +1,3 @@
-# GreedGame
 
 class DiceSet
 	attr_reader :values
@@ -77,7 +76,39 @@ class GreedGame
 		@p2.name = gets.chomp
 	end
 
-	
+	def get_choice
+		ans = nil
+		loop do
+			print "Want to roll again[y/n] : "
+			ans = gets.chomp
+			break if ans == "y" or ans == "n" 
+		end
+		ans
+	end
+
+	def play_turn(current_player)
+		current_score = 0
+		num_scoring_dice = 5
+		zero_point_roll = false
+		loop do
+			current_player.dice.roll(num_scoring_dice)
+			score = current_player.dice.score
+			current_score += score
+			non_scoring_dice = current_player.dice.non_scoring_dice
+			puts "You rolled #{current_player.dice.values}"
+			puts "Your score for this roll is #{score}"
+			num_scoring_dice = non_scoring_dice
+			num_scoring_dice = 5 if  current_player.dice.all_scoring?
+			zero_point_roll = true if score == 0
+			break if zero_point_roll
+			if num_scoring_dice > 0
+				ans = get_choice
+				break if ans == "n"
+			end
+		end
+		current_score = 0 if zero_point_roll
+		current_score
+	end
 
 	def play
 		final_round = false
@@ -85,81 +116,21 @@ class GreedGame
 			if @turn == PLAYER1 and (@p1.total_score >= 3000 or @p2.total_score >=3000)
 				final_round = true
 			end
-			current_player = nil
-			if @turn == PLAYER1
-				current_player = @p1
-			else
-				current_player = @p2
-			end
-
+			current_player = @turn == PLAYER1 ? @p1 : @p2
 			puts "======================================="
 			puts "===========FINAL ROUND=================" if final_round
 			puts "#{current_player.name}'s turn"
-
 			if not current_player.ingame?
 				puts "Roll 300 to get in the game"
 			end
-
-
-			current_score = 0
-			num_scoring_dice = 5
-			zero_point_roll = false
-			loop do
-				current_player.dice.roll(num_scoring_dice)
-				score = current_player.dice.score
-				current_score += score
-				non_scoring_dice = current_player.dice.non_scoring_dice
-				
-				puts "You rolled #{current_player.dice.values}"
-				puts "Your score for this roll is #{score}"
-				num_scoring_dice = non_scoring_dice
-				if current_player.dice.all_scoring?
-					num_scoring_dice = 5
-				end
-
-				if score == 0
-					zero_point_roll = true
-				end
-
-				break if zero_point_roll
-
-				if num_scoring_dice > 0
-					ans = nil
-					loop do
-						print "Want to roll again[y/n] : "
-						ans = gets.chomp
-						break if ans == "y" or ans == "n" 
-					end
-					break if ans == "n"
-				end
-
-			end
-
-			current_score = 0 if zero_point_roll
-
+			current_score = play_turn(current_player)
 			if not current_player.ingame? and current_score >= 300
 				current_player.in_game = true
 			end
-			
-			if current_player.ingame?
-				current_player.add_score(current_score)
-			end
-
+			current_player.add_score(current_score) if current_player.ingame?
 			puts "You accumulated score is #{current_player.total_score}"
-
-		
-
-			if @turn == PLAYER1
-				@turn = PLAYER2
-			else
-				@turn = PLAYER1
-			end
-
-			if final_round and @turn == PLAYER1
-				break
-			end
-
-
+			@turn = [PLAYER1,PLAYER2][(@turn+1)%2]
+			break if final_round and @turn == PLAYER1
 		end
 		
 	end
@@ -169,7 +140,7 @@ class GreedGame
 		puts "#{@p1.name}'s score is #{@p1.total_score}"
 		puts "#{@p2.name}'s score is #{@p2.total_score}"
 		if @p1.total_score > @p2.total_score
-			puts " #{@p1.name} wins"
+			puts "#{@p1.name} wins"
 		elsif @p1.total_score < @p2.total_score
 			puts " #{@p2.name} wins"
 		else 
